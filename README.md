@@ -80,3 +80,4 @@ If this prototype is useful, I will have learned something real. If it fails, I 
 **Then update your portfolio's PulaTrack card or add a new project card** that links to this repo once you push it. The README above is your proof. The code comes next.
 
 When you're ready to start the first Rust module, tell me and I'll write the `Cargo.toml` and the first file structure—then you run it, paste the errors, and we iterate.
+Next step: Go read the README and code structure of MER (github.com/randyap8-wq/Micro-Expert-Router-SSD-Streamed-MoE-MER) to see how far it has gotten and what gaps remain under 12GB constraints.
