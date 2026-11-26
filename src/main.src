@@ -1,0 +1,87 @@
+// =====================================================================
+// Project: MoE Expert Residency Manager
+// Author:  Theo Anold Gaopalelwe
+// Context: Mitigating the low-VRAM MoE inference bottleneck discussed
+//          in deepseek-ai/Engram Issue #8.
+// =====================================================================
+
+// We use a struct to represent an Expert node.
+// Size is in GB. Activation count is the frequency it gets picked by the router.
+struct Expert {
+    id: usize,
+    size_gb: f64,
+    activation_count: u32,
+}
+
+fn main() {
+    println!("--- MoE Residency Engine ---");
+    println!("Status: Booting allocation policy...\n");
+
+    // 1. Hardware Constraints
+    // Based on the 12GB VRAM test data, an 8GB cache budget outperforms a 10GB budget.
+    // We simulate an 8GB hard limit for expert weights.
+    let vram_limit_gb: f64 = 8.0; 
+
+    // 2. Model Architecture Limits
+    let total_experts: usize = 64;
+    let expert_size_gb: f64 = 0.25; // 64 * 0.25 = 16GB total. We must offload half.
+
+    // 3. Initialize the experts (Synthetic routing data)
+    // In a real model, these counts come from the token router's history.
+    let mut experts: Vec<Expert> = Vec::new();
+    
+    for i in 0..total_experts {
+        // Simulating a skewed distribution. 
+        // Real MoE routers aren't uniform; some experts do heavy lifting.
+        let frequency = if i < 8 { 
+            5000 // Hot
+        } else if i < 24 { 
+            1000 // Warm
+        } else { 
+            50   // Cold
+        };
+
+        experts.push(Expert {
+            id: i,
+            size_gb: expert_size_gb,
+            activation_count: frequency,
+        });
+    }
+
+    // 4. The Policy: Frequency-Based Residency
+    // Instead of first-come-first-serve, we keep the hottest experts in VRAM.
+    // This minimizes the latency penalty of fetching weights from the SSD.
+    experts.sort_by(|a, b| b.activation_count.cmp(&a.activation_count));
+
+    let mut vram_used: f64 = 0.0;
+    let mut resident_count: usize = 0;
+
+    print!("Applying residency policy...");
+
+    // 5. Allocation Loop
+    for expert in &experts {
+        if vram_used + expert.size_gb <= vram_limit_gb {
+            vram_used += expert.size_gb;
+            resident_count += 1;
+        } else {
+            // VRAM is full. All subsequent (colder) experts get offloaded to NVMe/SSD.
+            break; 
+        }
+    }
+    println!(" OK.\n");
+
+    // 6. Telemetry Output
+    println!("=== Engine Metrics ===");
+    println!("VRAM Budget:     {:.2} GB", vram_limit_gb);
+    println!("Total Experts:   {}", total_experts);
+    println!("Resident on GPU: {}", resident_count);
+    println!("Offloaded to SSD:{}", total_experts - resident_count);
+    println!("Actual VRAM Used: {:.2} GB", vram_used);
+    
+    println!("\nTop Resident Experts (Sorted by Hit Frequency):");
+    for i in 0..3 {
+        println!("  Expert ID {:>2} | Hits: {}", experts[i].id, experts[i].activation_count);
+    }
+
+    println!("\nPolicy applied. Next commit: Simulating decode latency.");
+}
