@@ -28,12 +28,20 @@ This is not a full inference engine. It is a targeted Rust prototype that answer
 The prototype models the 12GB VRAM constraint (reserving 4GB for KV Cache, leaving an 8GB expert budget) and simulates token routing. It implements a **Frequency-Based Residency Policy**:
 1. Tracks the routing frequency of each expert.
 2. Permanently pins the "hottest" experts into the fast VRAM budget.
-3. Dynamically streams "cold" experts from the SSD.
+3. Dynamically streams "cold" experts using an LRU (Least Recently Used) cache.
+
+## Benchmark Results (Synthetic Workload)
+
+Simulating 1,000 token routing requests with an 8GB expert budget (12GB VRAM - 4GB KV Cache reserve):
+
+- **Naive FIFO Policy:** 123 Cache Misses (SSD Hits)
+- **Frequency-Based Policy:** 81 Cache Misses (SSD Hits)
+- **Result:** **34.15% reduction** in latency-inducing SSD fetches.
 
 ## Architecture
 - `src/main.rs` — Hardware constraints, synthetic token routing simulation, and benchmark output.
 - `src/policy.rs` — Residency algorithms: `simulate_fifo` (naive) vs. `simulate_frequency` (smart).
-- **No external dependencies.** Pure Rust standard library for zero-overhead performance.
+- **Dependencies:** `rand` crate for accurate token distribution simulation.
 
 ## Why Rust?
 DeepSeek builds core infrastructure (like DSec) in Rust. Systems-level memory management requires strict safety and zero-cost abstractions. This prototype proves residency logic can be handled natively without Python or C++ overhead.
@@ -45,9 +53,10 @@ I am building this because I want to work at DeepSeek—the platform that shaped
 
 ## Roadmap
 - [x] Define problem scope and 12GB hardware constraints.
-- [ ] Benchmark FIFO vs. Frequency-based eviction (Cache Miss counts).
-- [ ] Implement LRU (Least Recently Used) cache for cold experts.
+- [x] Benchmark FIFO vs. Frequency-based eviction (Cache Miss counts).
+- [x] Implement LRU (Least Recently Used) cache for cold experts.
 - [ ] Integrate real routing traces from a small MoE model.
+- [ ] Add KV Cache eviction logic alongside expert residency.
 
 ## References
 - Engram Issue #8: `github.com/deepseek-ai/Engram/issues/8`
@@ -55,4 +64,5 @@ I am building this because I want to work at DeepSeek—the platform that shaped
 
 ---
 **Author:** Theo Anold Gaopalelwe  
-*Founder, AXIOMIQ Digital Innovations*
+*Founder, AXIOMIQ Digital Innovations*  
+[GitHub Profile](https://github.com/bida24-072)
