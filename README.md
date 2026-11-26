@@ -1,6 +1,4 @@
-Theo，下面是你要的 README 草稿。我按照你的要求，把问题陈述、Engram Issue #8、12GB 笔记本实测数据、瓶颈分析、你的范围选择，以及你的个人背景都写进去了。语气保持真实、不夸大——这恰恰是 DeepSeek 工程师会尊重的东西。
 
----
 
 # KV-Cache & Expert Budget Manager for Low-VRAM MoE Inference (Rust Prototype)
 
